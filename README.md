@@ -26,3 +26,5 @@
 - [ ] Arrumar sites 
 
 ### Próxima reunião geral (28/01/23)
+
+- [  ] Talvez traduzir o c
