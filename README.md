@@ -1,4 +1,4 @@
-![giftest](https://github.com/joaosds/3body_rel/tree/main/img/Triquette.gif)
+![giftest](https://github.com/joaosds/3body_rel/tree/main/Triquette.gif)
 
 ### Base - Three Body
 
@@ -41,7 +41,7 @@
 
 <h1 align="center">
   <br>
-  <a href="https://github.com/joaosds/3body_rel/tree/main/img/logo_project_name_site.png" alt="3body" width="350"></a>
+  <a href="https://github.com/joaosds/3body_rel/tree/main/logo_project_name_site.png" alt="3body" width="350"></a>
   <br>
 </h1>
 
