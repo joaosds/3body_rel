@@ -1,4 +1,4 @@
-![giftest](https://github.com/joaosds/3body_rel/tree/main/Triquette.gif)
+![giftest](Triquette.gif)
 
 ### Base - Three Body
 
@@ -37,11 +37,6 @@
 1. Old website https://mcgill3body.github.io/
 2. Old rep https://github.com/mcgill3body/mcgill3body.github.io/tree/master/sourcecode
 
-![imgtest](https://github.com/joaosds/3body_rel/tree/main/logo_project_name_site.png)
+![imgtest](logo_project_name_site.png)
 
-<h1 align="center">
-  <br>
-  <a href="https://github.com/joaosds/3body_rel/"><img src="https://github.com/joaosds/3body_rel/tree/main/logo_project_name_site.png" alt="3body" width="350"></a>
-  <br>
-</h1>
 
