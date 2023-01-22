@@ -39,8 +39,9 @@
 
 <!-- ![imgtest](https://github.com/joaosds/3body_rel/tree/main/img/logo_project_name_site.png) -->
 
-<img
-  src="https://github.com/joaosds/3body_rel/tree/main/img/logo_project_name_site.png"
-  alt="Alt text"
-  title="Optional title"
-  style="display: inline-block; margin: 0 auto; max-width: 300px">
+<h1 align="center">
+  <br>
+  <a href="https://github.com/joaosds/3body_rel/tree/main/img/logo_project_name_site.png" alt="3body" width="350"></a>
+  <br>
+</h1>
+
