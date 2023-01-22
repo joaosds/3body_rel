@@ -1,4 +1,7 @@
+![](https://github.com/joaosds/3body_rel/tree/main/img/Triquette.gif)
+
 ### Base - Three Body
+
 
 - [ ] Arrumar git, documentação geral e README;
 - [ ] Arrumar escalas;
@@ -27,4 +30,11 @@
 
 ### Próxima reunião geral (28/01/23)
 
-- [ ] Talvez traduzir o codigo pra JUlia
+- [ ] Talvez traduzir o codigo pra Julia
+
+
+# Links
+1. Old website https://mcgill3body.github.io/
+2. Old rep https://github.com/mcgill3body/mcgill3body.github.io/tree/master/sourcecode
+
+![](https://github.com/joaosds/3body_rel/tree/main/img/logo_project_name_site.png)
