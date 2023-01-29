@@ -18,8 +18,8 @@ m1, m2, m3 = m
 
 def dist(r1: np.ndarray, r2: np.ndarray) -> float:
     # eps = numerical cutoff of 1e-4 to avoid masses going to infinity
-    eps = 0
-    return np.sqrt(np.sum(r1 - r2) ** 2 + eps)
+    eps = 0.
+    return np.sqrt(np.sum((r1 - r2)**2) + eps)
 
 
 def nvec(r1: np.ndarray, r2: np.ndarray) -> np.ndarray:
@@ -305,7 +305,7 @@ def ThreeBodyEquations2(u, p, t):
     # dr2_dt = u[4]
     # dr3_dt = u[5]
 
-    du_dt = np.zeros((6, 3))
+    # du_dt = np.zeros((6, 3))
     # r1, r2, r3 = u[:3]
     # v1, v2, v3 = u[3:6]
 
@@ -321,6 +321,7 @@ def ThreeBodyEquations2(u, p, t):
     v12_derivs = np.concatenate((dv1_dt, dv2_dt))
     v_derivs = np.concatenate((v12_derivs, dv3_dt))
     derivs = np.concatenate((r_derivs, v_derivs))
+    
     return derivs
 
 
@@ -345,11 +346,14 @@ def PENIS0_EQUATION(u, p, t):
     du_dt[0] = u[3]
     du_dt[1] = u[4]
     du_dt[2] = u[5]
+    # du_dt[3] = PN00(u[:3])
+    # du_dt[4] = PN00(u[[1, 2, 0]])
+    # du_dt[5] = PN00(u[[2, 0, 1]])
+    
     du_dt[3] = PN0(u[:3])
     du_dt[4] = PN0(u[[1, 2, 0]])
     du_dt[5] = PN0(u[[2, 0, 1]])
-    # print(du_dt)
-
+    
     return du_dt
 
 
@@ -358,8 +362,10 @@ t = 1
 PENIS0_EQUATION(init_cond("fig8"), p, t)
 
 tspan = (0.0, t_f)
+runtime = time.time()
 prob = de.ODEProblem(PENIS0_EQUATION, init_cond("fig8"), tspan)
-sol = de.solve(prob, de.RK4(), saveat=anispeed)
+sol = de.solve(prob, de.Vern9(), saveat=0.08, abstol = 1e-9, reltol = 1e-9)
+print(time.time()-runtime)
 
 solt = np.array(sol.u)
 r1 = solt[:, 0, :].T
@@ -369,10 +375,18 @@ v1 = solt[:, 3, :].T
 v2 = solt[:, 4, :].T
 v3 = solt[:, 5, :].T
 
-plt.plot(*r1[:2], c='black')
-# plt.plot(*r2[:2], c='red')
-# plt.plot(*r3[:2], c='green')
-plt.show()
+for i in range(0, r1.shape[1], 1):
+    plt.scatter(*r1[:2,i])
+    plt.scatter(*r2[:2,i])
+    plt.scatter(*r3[:2,i])
+    plt.xlim(-2,2)
+    plt.ylim(-2,2)
+    plt.show()
+
+# plt.plot(*r1[:2,], c='black')
+# plt.plot(*r2[:2,], c='red')
+# plt.plot(*r3[:2,], c='green')
+# plt.show()
 
 # print(np.array(sol.u).shape)
 # print(r1.shape, v1.shape)
