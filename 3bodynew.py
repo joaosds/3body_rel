@@ -1,40 +1,136 @@
+# TD:
+# 1. Testar intervalo de integração até convergência para outros métodos, e se necessário
+# adcionar uma integração simplética com termos de velocidade.
+# 2. Add all initial conditions and constants in a separate file.
+# 3. Think the most efficient way to document the code. I don't think the parameters/ returns
+# is necessary
+
 import numpy as np
 from diffeqpy import de
 import sys
-import matplotlib.pyplot as plt
-import os
+
+# import matplotlib.pyplot as plt
+# import os
 import time
 
+# For first time using diffeqpy
 # diffeqpy.install()
-c = 1
-anispeed = 0.08  # 0.0002
-t_f = 108
-# TD:
-# Testar intervalo de integração até convergência para outros métodos
 
-m = np.array([1, 1, 1])
+# Global variables
+c = 1  # speed of light
+anispeed = 0.08  # animation step
+t_f = 108  # final time for evolution of the system
+tspan = (0.0, t_f)
+m = np.array([1, 1, 1])  # masses of three bodies, global constants
 m1, m2, m3 = m
 
 
-def dist(r1: np.ndarray, r2: np.ndarray) -> float:
-    # eps = numerical cutoff of 1e-4 to avoid masses going to infinity
-    eps = 0.
-    return np.sqrt(np.sum((r1 - r2)**2) + eps)
+# ------------------ Auxiliary Functions ------------------------
+
+
+def init_cond(case: str) -> np.ndarray:
+    """
+    Predefined initial conditions (IC) for a three-body configuration. Options for case: fig8, triquette...
+    # add other initial configs.
+
+    Parameters
+    ----------
+    Pos_0, Vel_0: np.ndarray
+        Position/Velocity vectors for 3 bodies shape (3, 3).
+
+    Returns
+    -------
+    ic : np.ndarray
+        Vector containing the IC with shape (6, 3).
+    """
+    if case == "fig8":
+        Pos_0 = np.array(
+            [[-0.97000436, 0.24308753, 0], [0, 0, 0], [0.97000436, -0.24308753, 0]]
+        )
+
+        Vel_0 = np.array(
+            [
+                [0.4662036850, 0.4323657300, 0],
+                [-0.93240737, -0.86473146, 0],
+                [0.4662036850, 0.4323657300, 0],
+            ]
+        )
+
+    ic = np.concatenate((Pos_0, Vel_0))
+    return ic
+
+
+def dist(r1: np.ndarray, r2: np.ndarray, eps=0) -> float:
+    """
+    Calculate distance |r1-r2|. A small numerical cutoff (eps)
+    may help avoiding masses going to infinity.
+    """
+    return np.sqrt(np.sum((r1 - r2) ** 2) + eps)
 
 
 def nvec(r1: np.ndarray, r2: np.ndarray) -> np.ndarray:
-    # Já inclui a direção
-    return (r1 - r2) / dist(r1, r2)
+    """
+    Calculate versor n_{ij} with appropriate direction (r1-r2) for force from
+    body 1 to 2.
+
+    Parameters
+    ----------
+    r1, r2: np.ndarray
+        Position vectors with shape (3).
+
+    Returns
+    -------
+    versor : np.ndarray
+        Versos n_{12} with shape (3)
+
+    """
+    versor = (r1 - r2) / dist(r1, r2)
+    return versor
 
 
-def PN1(m: np.ndarray, x: np.ndarray, v: np.ndarray) -> np.ndarray:
+# ------------------ Force terms  ------------------------
+
+
+def PN0(x: np.ndarray) -> np.ndarray:
+    """
+    Newtonian gravitational force.
+
+    Parameters
+    ----------
+    x: np.ndarray
+        Vectors for positions. Shape (3)
+
+    Returns
+    -------
+    f_pn0 : np.ndarray
+        Newtonian contribution. Shape (3).
+    """
+    x1, x2, x3 = x
+    f12 = m2 * nvec(x2, x1) / dist(x1, x2) ** 2
+    f13 = m3 * nvec(x3, x1) / dist(x1, x3) ** 2
+    f_pn0 = f12 + f13
+
+    return f_pn0
+
+
+def PN1(x: np.ndarray, v: np.ndarray) -> np.ndarray:
     """
     First order relativistic correction (order c^{-2}) for newtonian gravitational force.
+
+    Parameters
+    ----------
+    x, v: np.ndarray
+        Vectors positions and velocities. Shape (3).
+
+    Returns
+    -------
+    f_pn1 : np.ndarray
+        PN correction. Shape (3).
+
     """
-    m1, m2, m3 = m
     x1, x2, x3 = x
     v1, v2, v3 = v
-    cu = (
+    f_pn1 = (
         (np.dot(nvec(x1, x2), (4 * v1 - 3 * v2)) * m2 * (v1 - v2)) / dist(x1, x2) ** 2
         + (np.dot(nvec(x1, x3), 4 * v1 - 3 * v3) * m3 * (v1 - v3)) / dist(x1, x3) ** 2
         + (
@@ -74,27 +170,24 @@ def PN1(m: np.ndarray, x: np.ndarray, v: np.ndarray) -> np.ndarray:
         / dist(x1, x3) ** 2
         - (7 * m2 * m3 * nvec(x3, x2)) / (2.0 * dist(x1, x3) * dist(x3, x2) ** 2)
     ) / c**2
-    return cu
+    return f_pn1
 
 
-def PN0(x: np.ndarray) -> np.ndarray:
-    """
-    Newtonian gravitational force.
-    """
-    # _, m2, m3 = m
-    x1, x2, x3 = x
-    f12 = m2 * nvec(x2, x1) / dist(x1, x2) ** 2
-    f13 = m3 * nvec(x3, x1) / dist(x1, x3) ** 2
-
-    return f12 + f13
-
-
-def PN2(m: np.ndarray, x: np.ndarray, v: np.ndarray) -> np.ndarray:
-
+def PN2(x: np.ndarray, v: np.ndarray) -> np.ndarray:
     """
     Second order relativistic correction (order c^{-4}) for newtonian gravitational force.
+
+    Parameters
+    ----------
+    x, v: np.ndarray
+        Vectors positions and velocities. Shape (3).
+
+    Returns
+    -------
+    f_pn2 : np.ndarray
+        PN2 correction. Shape (3).
+
     """
-    m1, m2, m3 = m
     x1, x2, x3 = x
     v1, v2, v3 = v
 
@@ -223,18 +316,29 @@ def PN2(m: np.ndarray, x: np.ndarray, v: np.ndarray) -> np.ndarray:
         c**4 * dist(x1, x3) ** 2
     )
 
-    return term1 + term2
+    f_pn2 = term1 + term2
+    return f_pn2
 
 
-def PN25(m: np.ndarray, x: np.ndarray, v: np.ndarray) -> np.ndarray:
+def PN25(x: np.ndarray, v: np.ndarray) -> np.ndarray:
     """
-    2.5 order relativistic correction (order c^{-5}) for newtonian gravitational force.
+    Second order .5 relativistic correction (order c^{-5}) for newtonian gravitational force.
+
+    Parameters
+    ----------
+    x, v: np.ndarray
+        Vectors positions and velocities. Shape (3).
+
+    Returns
+    -------
+    f_pn2p5 : np.ndarray
+        PN2.5 correction. Shape (3).
+
     """
-    m1, m2, m3 = m
     x1, x2, x3 = x
     v1, v2, v3 = v
 
-    term = (
+    f_n2p5 = (
         4
         * m1
         * m2
@@ -267,171 +371,94 @@ def PN25(m: np.ndarray, x: np.ndarray, v: np.ndarray) -> np.ndarray:
     ) / (
         5.0 * c**5 * dist(x1, x3) ** 3
     )
-    return term
+    return f_n2p5
 
 
-## Figure 8 Initial Conditions ##
-def init_cond(case: str) -> np.ndarray:
-
-    if case == "fig8":
-        Pos_0 = np.array(
-            [[-0.97000436, 0.24308753, 0], [0, 0, 0], [0.97000436, -0.24308753, 0]]
-        )
-
-        Vel_0 = np.array(
-            [
-                [0.4662036850, 0.4323657300, 0],
-                [-0.93240737, -0.86473146, 0],
-                [0.4662036850, 0.4323657300, 0],
-            ]
-        )
-
-    return np.concatenate((Pos_0, Vel_0))
+# ------------------ Solvers  ------------------------
 
 
-r1, r2, r3, v1, v2, v3 = init_cond("fig8")
-
-
-def ThreeBodyEquations2(u, p, t):
+def de_newton(u, p, t):
     """
-    Three-body classical trajectories.
-    u - > array coordinates, velocity
+    Three-body classical trajectories. Newtonian solution of differential
+    equations (DE).
+
+    Parameters
+    ----------
+    u: np.ndarray
+        Vector containing the right part of the DEs.
+        Here, dv/dt is indexed in (u[1:3, :]) and dx/dt in (u[3:6, :]),
+        such that u has a shape of (6,3). The 2nd index refers to each body.
+
+    Returns
+    -------
+    du_dt: np.ndarray
+        Array with all DEs.
     """
-
-    # dv1_dt = PN0(u[:3])
-    # dv2_dt = PN0(u[[1, 2, 0]])
-    # dv3_dt = PN0(u[[2, 0, 1]])
-    # dr1_dt = u[3]
-    # dr2_dt = u[4]
-    # dr3_dt = u[5]
-
-    # du_dt = np.zeros((6, 3))
-    # r1, r2, r3 = u[:3]
-    # v1, v2, v3 = u[3:6]
-
-    dv1_dt = PN0(u[:3])
-    dv2_dt = PN0(u[[1, 2, 0]])
-    dv3_dt = PN0(u[[2, 0, 1]])
-    dr1_dt = u[3]
-    dr2_dt = u[4]
-    dr3_dt = u[5]
-
-    r12_derivs = np.concatenate((dr1_dt, dr2_dt))
-    r_derivs = np.concatenate((r12_derivs, dr3_dt))
-    v12_derivs = np.concatenate((dv1_dt, dv2_dt))
-    v_derivs = np.concatenate((v12_derivs, dv3_dt))
-    derivs = np.concatenate((r_derivs, v_derivs))
-    
-    return derivs
-
-
-def PENIS0_EQUATION(u, p, t):
-    """
-    Three-body classical trajectories.
-    u - > array coordinates, velocity
-    """
-
-    # print(u)
-    # dv1_dt = PN0(u[:3])
-    # dv2_dt = PN0(u[[1, 2, 0]])
-    # dv3_dt = PN0(u[[2, 0, 1]])
-    # dr1_dt = u[3]
-    # dr2_dt = u[4]
-    # dr3_dt = u[5]
 
     du_dt = np.zeros((6, 3))
-    # r1, r2, r3 = u[:3]
-    # v1, v2, v3 = u[3:6]
 
     du_dt[0] = u[3]
     du_dt[1] = u[4]
     du_dt[2] = u[5]
-    # du_dt[3] = PN00(u[:3])
-    # du_dt[4] = PN00(u[[1, 2, 0]])
-    # du_dt[5] = PN00(u[[2, 0, 1]])
-    
+
     du_dt[3] = PN0(u[:3])
     du_dt[4] = PN0(u[[1, 2, 0]])
     du_dt[5] = PN0(u[[2, 0, 1]])
-    
+
     return du_dt
 
-
-p = 1
-t = 1
-PENIS0_EQUATION(init_cond("fig8"), p, t)
-
-tspan = (0.0, t_f)
 runtime = time.time()
-prob = de.ODEProblem(PENIS0_EQUATION, init_cond("fig8"), tspan)
-sol = de.solve(prob, de.Vern9(), saveat=0.08, abstol = 1e-9, reltol = 1e-9)
-print(time.time()-runtime)
 
-solt = np.array(sol.u)
-r1 = solt[:, 0, :].T
-r2 = solt[:, 1, :].T
-r3 = solt[:, 2, :].T
-v1 = solt[:, 3, :].T
-v2 = solt[:, 4, :].T
-v3 = solt[:, 5, :].T
+# In de.odeProblem we call the julia function with first argument as the DE,
+# second with, and number of solutions (tspan)
+# TD create a small functiopn for these definitions (in order to use to other corrections)
 
-for i in range(0, r1.shape[1], 1):
-    plt.scatter(*r1[:2,i])
-    plt.scatter(*r2[:2,i])
-    plt.scatter(*r3[:2,i])
-    plt.xlim(-2,2)
-    plt.ylim(-2,2)
-    plt.show()
+prob = de.ODEProblem(de_newton, init_cond("fig8"), tspan)
+sol = de.solve(prob, de.Vern9(), saveat=anispeed, abstol=1e-9, reltol=1e-9)
+# In sol, the second argument is the method
+print(time.time() - runtime)
 
-# plt.plot(*r1[:2,], c='black')
-# plt.plot(*r2[:2,], c='red')
-# plt.plot(*r3[:2,], c='green')
-# plt.show()
+# TD: think on how to save this in a smarter way
+sol = np.array(sol.u)
+r1 = sol[:, 0, :].T
+r2 = sol[:, 1, :].T
+r3 = sol[:, 2, :].T
+v1 = sol[:, 3, :].T
+v2 = sol[:, 4, :].T
+v3 = sol[:, 5, :].T
 
-# print(np.array(sol.u).shape)
-# print(r1.shape, v1.shape)
-#
-# start = time.time()
-# sys.path.append("/home/jass/phd/projects/3body/")
-# import TBODYplot as TBODYplot
-#
-# # time interval and the step size
-# t = np.arange(0, t_f, anispeed)
+# ------------------ Animation  ------------------------
 
-# render = 60
-# cu_fade = TBODYplot.plot2Dfade_solution(
-#     render,
-#     m1,
-#     m2,
-#     m3,
-#     *r1,
-#     t,
-#     *r2,
-#     *r3,
-#     *r3,
-#     *r3,
-#     *r3,
-#     *r3,
-#     *r2,
-#     *r1,
-#     2,
-# )
-#
-# cu_fade.save("/home/jass/phd/projects/3body/figure8_25PN.mp4", writer="ffmpeg", fps=30)
-#
-#
-# end = time.time()
-# elapsed = end - start
-# print("Animation time =", elapsed)
-# # sol = de.solve(prob, de.RK4, saveat=0.1)
-# # three_body_sol = solve_ivp(
-# #     dydx,
-# #     [0, t_f],
-# #     u0,
-# #     t_eval=t,
-# #     method="Radau",
-#     max_step=1e-2,
-#     args=(m1, m2, m3),
-#     atol=1e-8,
-#     rtol=1e-8,
-# )
+# TD: make path general to current folder
+start = time.time()
+sys.path.append("/home/jass/phd/projects/3body/")
+import TBODYplot as TBODYplot
+
+# time interval and the step size
+t = np.arange(0, t_f, anispeed)
+render = 60
+
+ani = TBODYplot.plot2Dfade_solution(
+    render,
+    m1,
+    m2,
+    m3,
+    *r1,
+    t,
+    *r2,
+    *r3,
+    *r3,
+    *r3,
+    *r3,
+    *r3,
+    *r2,
+    *r1,
+    2,
+)
+
+# TD: Add option to already save as gif
+ani.save("/home/jass/phd/projects/3body/figure8_25PN.mp4", writer="ffmpeg", fps=30)
+
+
+end = time.time()
+elapsed = end - start

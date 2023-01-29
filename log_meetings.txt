@@ -1,0 +1,14 @@
+28/01/2023 
+
+1. Mathematica nb (/matnb/PN1.nb) com dedução recursivas de forças da imagem "/matnb/forces_up_to_2p5_pn.png"
+até ordem 2.5;
+2. Novo arquivo "3bodynew.py" com forças corrigidas e animação introduzida pelo Felipe no ano passado. 
+3. Integração do wrapper (https://github.com/SciML/diffeqpy) pra utilizar o DifferentialEquations.jl no python; 
+
+Próxima reunião: 
+
+- Traduzir o código para Julia e ver se compensa; 
+- Adicionar corretamente o cálculo para ordem 1 e 2.5 PN; 
+- Comparar métodos de integração. 
+- Passar o código para estrutura de classe.
+- Adicionar outras configurações iniciais e a possibilidade de fazer isso na mão.
