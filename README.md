@@ -25,7 +25,6 @@
 
 ### Fase Final
 - [ ] Pensar ao fim como melhorar o design do pyqt;
-- [ ] Artigo;
 - [ ] Arrumar sites 
 
 ### Próxima reunião geral (28/01/23)
